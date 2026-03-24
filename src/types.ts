@@ -387,13 +387,8 @@ interface LayerBase {
 export interface SolidColorLayer extends LayerBase {
   type: "solid-color";
   hex_color: string;
-}
-
-export interface SolidColorLayer extends LayerBase {
-  type: "solid-color";
-  hex_color: string;
-  position: Position;
-  dimensions: Dimensions;
+  position?: Position;
+  dimensions?: Dimensions;
   rotation_in_degrees?: number;
   angled_edges?: AngledEdge[];
   border_radius?: number;
@@ -424,8 +419,8 @@ export interface TextLayer extends LayerBase {
 export interface ImageLayer extends LayerBase {
   type: "image";
   file: FileInput;
-  position: Position;
-  dimensions: Dimensions;
+  position?: Position;
+  dimensions?: Dimensions;
   rotation_in_degrees?: number;
   should_use_smart_cropping?: boolean;
   should_remove_background?: boolean;
@@ -434,12 +429,6 @@ export interface ImageLayer extends LayerBase {
   border_top_right_radius?: number;
   border_bottom_left_radius?: number;
   border_bottom_right_radius?: number;
-}
-
-export interface ImageLayer extends LayerBase {
-  type: "image";
-  file: FileInput;
-  should_use_smart_cropping?: boolean;
 }
 
 export interface QrCodeLayer extends LayerBase {
@@ -502,9 +491,7 @@ export interface LayoutLayer extends LayerBase {
 
 export type Layer =
   | SolidColorLayer
-  | SolidColorLayer
   | TextLayer
-  | ImageLayer
   | ImageLayer
   | QrCodeLayer
   | BarcodeLayer

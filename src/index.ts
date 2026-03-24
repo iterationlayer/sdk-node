@@ -100,8 +100,6 @@ export type {
   SeparatorStyle,
   SharpenOperation,
   SmartCropOperation,
-  SolidColorLayer,
-  ImageLayer,
   TableBlock,
   TableBodyStyle,
   TableCell,
