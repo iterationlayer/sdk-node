@@ -396,6 +396,11 @@ export interface SolidColorLayer extends LayerBase {
   dimensions: Dimensions;
   rotation_in_degrees?: number;
   angled_edges?: AngledEdge[];
+  border_radius?: number;
+  border_top_left_radius?: number;
+  border_top_right_radius?: number;
+  border_bottom_left_radius?: number;
+  border_bottom_right_radius?: number;
 }
 
 export interface TextLayer extends LayerBase {
@@ -424,6 +429,11 @@ export interface ImageLayer extends LayerBase {
   rotation_in_degrees?: number;
   should_use_smart_cropping?: boolean;
   should_remove_background?: boolean;
+  border_radius?: number;
+  border_top_left_radius?: number;
+  border_top_right_radius?: number;
+  border_bottom_left_radius?: number;
+  border_bottom_right_radius?: number;
 }
 
 export interface ImageLayer extends LayerBase {
@@ -461,6 +471,33 @@ export interface GradientLayer extends LayerBase {
   dimensions: Dimensions;
   angle_in_degrees?: number;
   rotation_in_degrees?: number;
+  border_radius?: number;
+  border_top_left_radius?: number;
+  border_top_right_radius?: number;
+  border_bottom_left_radius?: number;
+  border_bottom_right_radius?: number;
+}
+
+export interface LayoutLayer extends LayerBase {
+  type: "layout";
+  layers: Layer[];
+  direction?: "horizontal" | "vertical";
+  gap?: number;
+  horizontal_alignment?: "start" | "center" | "end";
+  vertical_alignment?: "start" | "center" | "end";
+  position?: Position;
+  dimensions?: Dimensions;
+  background_color?: string;
+  padding?: number;
+  padding_top?: number;
+  padding_right?: number;
+  padding_bottom?: number;
+  padding_left?: number;
+  border_radius?: number;
+  border_top_left_radius?: number;
+  border_top_right_radius?: number;
+  border_bottom_left_radius?: number;
+  border_bottom_right_radius?: number;
 }
 
 export type Layer =
@@ -471,7 +508,8 @@ export type Layer =
   | ImageLayer
   | QrCodeLayer
   | BarcodeLayer
-  | GradientLayer;
+  | GradientLayer
+  | LayoutLayer;
 
 export interface GenerateImageRequest {
   dimensions: Dimensions;
@@ -864,5 +902,72 @@ export interface GenerateDocumentRequest {
 }
 
 export interface GenerateDocumentAsyncRequest extends GenerateDocumentRequest {
+  webhook_url: string;
+}
+
+// Sheet Generation
+
+export type SheetFormat = "csv" | "markdown" | "xlsx";
+export type SheetCellFormat = "text" | "number" | "decimal" | "currency" | "percentage" | "date" | "datetime" | "time" | "custom";
+export type SheetNumberStyle = "comma_period" | "period_comma" | "space_comma" | "space_period";
+export type SheetHorizontalAlignment = "left" | "center" | "right";
+export type SheetFontWeight = "thin" | "extralight" | "light" | "regular" | "medium" | "semibold" | "bold" | "extrabold" | "black";
+export type SheetFontStyle = "normal" | "italic";
+
+export interface SheetCellStyle {
+  font_family?: string;
+  font_size_in_pt?: number;
+  is_bold?: boolean;
+  is_italic?: boolean;
+  font_color?: string;
+  background_color?: string;
+  horizontal_alignment?: SheetHorizontalAlignment;
+  number_format?: string;
+}
+
+export interface SheetCell {
+  value?: string | number | boolean | null;
+  format?: SheetCellFormat;
+  currency_code?: string;
+  number_style?: SheetNumberStyle;
+  date_style?: string;
+  styles?: SheetCellStyle;
+  from_col?: number;
+  to_col?: number;
+  from_row?: number;
+  to_row?: number;
+}
+
+export interface SheetColumn {
+  name: string;
+  width?: number;
+}
+
+export interface Sheet {
+  name?: string;
+  columns: SheetColumn[];
+  rows?: (SheetCell | string | number | boolean | null)[][];
+}
+
+export interface SheetStyles {
+  header?: SheetCellStyle;
+  body?: SheetCellStyle;
+}
+
+export interface SheetFontDefinition {
+  name: string;
+  weight: SheetFontWeight;
+  style: SheetFontStyle;
+  buffer: string;
+}
+
+export interface GenerateSheetRequest {
+  format: SheetFormat;
+  sheets: Sheet[];
+  styles?: SheetStyles;
+  fonts?: SheetFontDefinition[];
+}
+
+export interface GenerateSheetAsyncRequest extends GenerateSheetRequest {
   webhook_url: string;
 }

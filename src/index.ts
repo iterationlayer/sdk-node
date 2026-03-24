@@ -124,6 +124,21 @@ export type {
   TrimOperation,
   UpscaleOperation,
   VerticalAlignment,
+  // Sheet Generation
+  GenerateSheetAsyncRequest,
+  GenerateSheetRequest,
+  Sheet,
+  SheetCell,
+  SheetCellFormat,
+  SheetCellStyle,
+  SheetColumn,
+  SheetFontDefinition,
+  SheetFontStyle,
+  SheetFontWeight,
+  SheetFormat,
+  SheetHorizontalAlignment,
+  SheetNumberStyle,
+  SheetStyles,
 } from "./types.js";
 
 import type {
@@ -136,6 +151,8 @@ import type {
   GenerateDocumentRequest,
   GenerateImageAsyncRequest,
   GenerateImageRequest,
+  GenerateSheetAsyncRequest,
+  GenerateSheetRequest,
   TransformAsyncRequest,
   TransformRequest,
 } from "./types.js";
@@ -202,6 +219,18 @@ export class IterationLayer {
     request: GenerateDocumentAsyncRequest,
   ): Promise<AsyncResult> {
     return this.post("/document-generation/v1/generate", request);
+  }
+
+  async generateSheet(
+    request: GenerateSheetRequest,
+  ): Promise<BinaryResult> {
+    return this.post("/sheet-generation/v1/generate", request);
+  }
+
+  async generateSheetAsync(
+    request: GenerateSheetAsyncRequest,
+  ): Promise<AsyncResult> {
+    return this.post("/sheet-generation/v1/generate", request);
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {

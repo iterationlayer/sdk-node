@@ -113,6 +113,33 @@ const result = await client.generateDocument({
 const pdfBuffer = Buffer.from(result.buffer, "base64");
 ```
 
+### Sheet Generation
+
+Generate CSV, Markdown, or XLSX spreadsheets from structured data.
+
+```typescript
+const result = await client.generateSheet({
+  format: "xlsx",
+  sheets: [
+    {
+      name: "Invoices",
+      columns: [
+        { name: "Company", width: 20 },
+        { name: "Total", width: 15 },
+      ],
+      rows: [
+        [
+          { value: "Acme Corp" },
+          { value: 1500.5, format: "currency", currency_code: "EUR" },
+        ],
+      ],
+    },
+  ],
+});
+
+const sheetBuffer = Buffer.from(result.buffer, "base64");
+```
+
 ### Webhooks (Async)
 
 Use the `*Async` methods to receive results via webhook instead of waiting for the response.

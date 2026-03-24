@@ -557,6 +557,94 @@ describe("IterationLayer", () => {
     });
   });
 
+  describe("generateSheet", () => {
+    const generateSheetRequest = {
+      format: "xlsx" as const,
+      sheets: [
+        {
+          name: "Invoices",
+          columns: [
+            { name: "Company", width: 20 },
+            { name: "Total", width: 15 },
+          ],
+          rows: [
+            [
+              { value: "Acme Corp" },
+              { value: 1500.5, format: "currency" as const, currency_code: "EUR" },
+            ],
+          ],
+        },
+      ],
+    };
+
+    it("sends the correct request and parses binary result", async () => {
+      const binaryData = { buffer: "sheetdata", mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
+
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ success: true, data: binaryData }),
+      );
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const result = await client.generateSheet(generateSheetRequest);
+
+      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [
+        string,
+        RequestInit,
+      ];
+      expect(calledUrl).toBe(
+        `${DEFAULT_BASE_URL}/sheet-generation/v1/generate`,
+      );
+      expect(calledOptions.method).toBe("POST");
+      expect(calledOptions.headers).toEqual({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${TEST_API_KEY}`,
+      });
+      expect(JSON.parse(calledOptions.body as string)).toEqual(
+        generateSheetRequest,
+      );
+      expect(result).toEqual(binaryData);
+    });
+  });
+
+  describe("generateSheetAsync", () => {
+    it("handles async result", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          success: true,
+          async: true,
+          message: "Sheet generation queued",
+        }),
+      );
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const result = await client.generateSheetAsync({
+        format: "xlsx",
+        sheets: [
+          {
+            name: "Test",
+            columns: [{ name: "A" }],
+            rows: [[{ value: "test" }]],
+          },
+        ],
+        webhook_url: "https://example.com/webhook",
+      });
+
+      const [, calledOptions] = mockFetch.mock.calls[0] as [
+        string,
+        RequestInit,
+      ];
+      expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
+        "webhook_url",
+        "https://example.com/webhook",
+      );
+      expect(result).toEqual({
+        success: true,
+        async: true,
+        message: "Sheet generation queued",
+      });
+    });
+  });
+
   describe("error handling", () => {
     it("throws IterationLayerError on error response", async () => {
       mockFetch.mockResolvedValueOnce(
