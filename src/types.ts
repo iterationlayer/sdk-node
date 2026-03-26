@@ -477,6 +477,7 @@ export interface LayoutLayer extends LayerBase {
   position?: Position;
   dimensions?: Dimensions;
   background_color?: string;
+  background_layers?: Layer[];
   padding?: number;
   padding_top?: number;
   padding_right?: number;
