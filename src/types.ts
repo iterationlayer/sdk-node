@@ -345,13 +345,13 @@ export interface TransformAsyncRequest extends TransformRequest {
 // ── Image Generation ───────────────────────────────────────────────────────
 
 export interface Dimensions {
-  width_in_px: number;
-  height_in_px: number;
+  width: number;
+  height: number;
 }
 
 export interface Position {
-  x_in_px: number;
-  y_in_px: number;
+  x: number;
+  y: number;
 }
 
 export interface AngledEdge {
@@ -599,7 +599,7 @@ export interface TextStyle {
   font_size_in_pt: number;
   line_height: number;
   color: string;
-  is_bold?: boolean;
+  font_weight?: string;
   is_italic?: boolean;
 }
 
@@ -609,7 +609,7 @@ export interface HeadlineStyle {
   color: string;
   spacing_before_in_pt: number;
   spacing_after_in_pt: number;
-  is_bold?: boolean;
+  font_weight?: string;
   is_italic?: boolean;
 }
 
@@ -619,8 +619,9 @@ export interface LinkStyle {
 }
 
 export interface ListStyle {
-  indent_in_pt: number;
-  spacing_between_items_in_pt: number;
+  marker_color: string;
+  marker_gap_in_pt: number;
+  text_style: TextStyle;
 }
 
 export interface BorderStyle {
@@ -630,43 +631,40 @@ export interface BorderStyle {
 
 export interface TableHeaderStyle {
   background_color: string;
-  font_family: string;
+  text_color: string;
   font_size_in_pt: number;
-  color: string;
-  padding_in_pt: number;
-  is_bold?: boolean;
-  border?: BorderStyle;
+  font_weight?: string;
 }
 
 export interface TableBodyStyle {
-  font_family: string;
+  background_color: string;
+  text_color: string;
   font_size_in_pt: number;
-  color: string;
-  padding_in_pt: number;
-  alternate_background_color?: string;
-  border?: BorderStyle;
 }
 
 export interface TableStyle {
   header: TableHeaderStyle;
   body: TableBodyStyle;
+  border?: BorderStyle;
 }
 
 export interface GridStyle {
+  background_color: string;
+  border_color: string;
+  border_width_in_pt: number;
   gap_in_pt: number;
 }
 
 export interface SeparatorStyle {
   color: string;
   thickness_in_pt: number;
-  margin_top_in_pt: number;
-  margin_bottom_in_pt: number;
+  spacing_before_in_pt: number;
+  spacing_after_in_pt: number;
 }
 
 export interface ImageStyle {
-  alignment: HorizontalAlignment;
-  margin_top_in_pt: number;
-  margin_bottom_in_pt: number;
+  border_color: string;
+  border_width_in_pt: number;
 }
 
 export interface DocumentStyles {
@@ -691,32 +689,28 @@ export type GridStyleOverrides = Partial<GridStyle>;
 
 export interface TableHeaderStyleOverrides {
   background_color?: string;
-  font_family?: string;
+  text_color?: string;
   font_size_in_pt?: number;
-  color?: string;
-  padding_in_pt?: number;
-  is_bold?: boolean;
-  border?: Partial<BorderStyle>;
+  font_weight?: string;
 }
 
 export interface TableBodyStyleOverrides {
-  font_family?: string;
+  background_color?: string;
+  text_color?: string;
   font_size_in_pt?: number;
-  color?: string;
-  padding_in_pt?: number;
-  alternate_background_color?: string;
-  border?: Partial<BorderStyle>;
 }
 
 export interface TableStyleOverrides {
   header?: TableHeaderStyleOverrides;
   body?: TableBodyStyleOverrides;
+  border?: Partial<BorderStyle>;
 }
 
 export interface TableCellStyle {
   background_color?: string;
-  color?: string;
-  is_bold?: boolean;
+  text_color?: string;
+  font_size_in_pt?: number;
+  font_weight?: string;
   is_italic?: boolean;
 }
 
@@ -724,14 +718,15 @@ export interface TableCellStyle {
 
 export interface ParagraphRun {
   text: string;
-  is_bold?: boolean;
+  font_weight?: string;
   is_italic?: boolean;
   link_url?: string;
 }
 
 export interface HeadlineTableOfContents {
-  is_excluded?: boolean;
-  label?: string;
+  is_included?: boolean;
+  label_override?: string;
+  level_override?: string;
 }
 
 export interface ParagraphBlock {
@@ -874,9 +869,9 @@ export type HeaderFooterBlock =
 
 export interface DocumentDefinition {
   metadata: DocumentMetadata;
-  page: DocumentPage;
-  styles: DocumentStyles;
   content: ContentBlock[];
+  page?: DocumentPage;
+  styles?: DocumentStyles;
   fonts?: DocumentFontDefinition[];
   header?: HeaderFooterBlock[];
   footer?: HeaderFooterBlock[];

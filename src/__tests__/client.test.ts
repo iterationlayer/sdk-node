@@ -284,7 +284,7 @@ describe("IterationLayer", () => {
 
   describe("generateImage", () => {
     const generateImageRequest = {
-      dimensions: { width_in_px: 1200, height_in_px: 630 },
+      dimensions: { width: 1200, height: 630 },
       layers: [
         {
           type: "solid-color" as const,
@@ -298,8 +298,8 @@ describe("IterationLayer", () => {
           font_name: "Arial",
           font_size_in_px: 48,
           text_color: "#000000",
-          position: { x_in_px: 100, y_in_px: 100 },
-          dimensions: { width_in_px: 1000, height_in_px: 200 },
+          position: { x: 100, y: 100 },
+          dimensions: { width: 1000, height: 200 },
         },
       ],
       output_format: "png" as const,
@@ -346,7 +346,7 @@ describe("IterationLayer", () => {
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
       const result = await client.generateImageAsync({
-        dimensions: { width_in_px: 1200, height_in_px: 630 },
+        dimensions: { width: 1200, height: 630 },
         layers: [
           { type: "solid-color", index: 0, hex_color: "#ffffff" },
         ],
@@ -396,37 +396,47 @@ describe("IterationLayer", () => {
             color: "#000000",
             spacing_before_in_pt: 12,
             spacing_after_in_pt: 6,
-            is_bold: true,
+            font_weight: "bold",
           },
           link: { color: "#0066cc" },
-          list: { indent_in_pt: 20, spacing_between_items_in_pt: 4 },
+          list: {
+            marker_color: "#000000",
+            marker_gap_in_pt: 4,
+            text_style: {
+              font_family: "Helvetica",
+              font_size_in_pt: 12,
+              line_height: 1.5,
+              color: "#000000",
+            },
+          },
           table: {
             header: {
               background_color: "#f0f0f0",
-              font_family: "Helvetica",
+              text_color: "#000000",
               font_size_in_pt: 12,
-              color: "#000000",
-              padding_in_pt: 8,
-              is_bold: true,
+              font_weight: "bold",
             },
             body: {
-              font_family: "Helvetica",
+              background_color: "#ffffff",
+              text_color: "#000000",
               font_size_in_pt: 12,
-              color: "#000000",
-              padding_in_pt: 8,
             },
           },
-          grid: { gap_in_pt: 12 },
+          grid: {
+            background_color: "#f9f9f9",
+            border_color: "#cccccc",
+            border_width_in_pt: 1,
+            gap_in_pt: 12,
+          },
           separator: {
             color: "#cccccc",
             thickness_in_pt: 1,
-            margin_top_in_pt: 12,
-            margin_bottom_in_pt: 12,
+            spacing_before_in_pt: 12,
+            spacing_after_in_pt: 12,
           },
           image: {
-            alignment: "center" as const,
-            margin_top_in_pt: 12,
-            margin_bottom_in_pt: 12,
+            border_color: "#cccccc",
+            border_width_in_pt: 1,
           },
         },
         content: [
@@ -507,33 +517,43 @@ describe("IterationLayer", () => {
               spacing_after_in_pt: 6,
             },
             link: { color: "#0066cc" },
-            list: { indent_in_pt: 20, spacing_between_items_in_pt: 4 },
+            list: {
+              marker_color: "#000",
+              marker_gap_in_pt: 4,
+              text_style: {
+                font_family: "Helvetica",
+                font_size_in_pt: 12,
+                line_height: 1.5,
+                color: "#000",
+              },
+            },
             table: {
               header: {
                 background_color: "#f0f0f0",
-                font_family: "Helvetica",
+                text_color: "#000",
                 font_size_in_pt: 12,
-                color: "#000",
-                padding_in_pt: 8,
               },
               body: {
-                font_family: "Helvetica",
+                background_color: "#ffffff",
+                text_color: "#000",
                 font_size_in_pt: 12,
-                color: "#000",
-                padding_in_pt: 8,
               },
             },
-            grid: { gap_in_pt: 12 },
+            grid: {
+              background_color: "#f9f9f9",
+              border_color: "#ccc",
+              border_width_in_pt: 1,
+              gap_in_pt: 12,
+            },
             separator: {
               color: "#ccc",
               thickness_in_pt: 1,
-              margin_top_in_pt: 12,
-              margin_bottom_in_pt: 12,
+              spacing_before_in_pt: 12,
+              spacing_after_in_pt: 12,
             },
             image: {
-              alignment: "center",
-              margin_top_in_pt: 12,
-              margin_bottom_in_pt: 12,
+              border_color: "#ccc",
+              border_width_in_pt: 1,
             },
           },
           content: [{ type: "headline", level: "h1", text: "Test" }],
