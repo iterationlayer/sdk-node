@@ -55,6 +55,9 @@ export type {
   GenerateDocumentRequest,
   GenerateImageAsyncRequest,
   GenerateImageRequest,
+  // Sheet Generation
+  GenerateSheetAsyncRequest,
+  GenerateSheetRequest,
   GradientColorStop,
   GradientLayer,
   GrayscaleOperation,
@@ -70,8 +73,8 @@ export type {
   IbanFieldConfig,
   ImageBlock,
   ImageFontDefinition,
-  ImageOutputFormat,
   ImageLayer,
+  ImageOutputFormat,
   ImageStyle,
   IntegerFieldConfig,
   InvertColorsOperation,
@@ -91,7 +94,6 @@ export type {
   ParagraphRun,
   Position,
   QrCodeLayer,
-  SolidColorLayer,
   RemoveBackgroundOperation,
   RemoveTransparencyOperation,
   ResizeOperation,
@@ -99,7 +101,20 @@ export type {
   SeparatorBlock,
   SeparatorStyle,
   SharpenOperation,
+  Sheet,
+  SheetCell,
+  SheetCellFormat,
+  SheetCellStyle,
+  SheetColumn,
+  SheetFontDefinition,
+  SheetFontStyle,
+  SheetFontWeight,
+  SheetFormat,
+  SheetHorizontalAlignment,
+  SheetNumberStyle,
+  SheetStyles,
   SmartCropOperation,
+  SolidColorLayer,
   TableBlock,
   TableBodyStyle,
   TableCell,
@@ -122,21 +137,6 @@ export type {
   TrimOperation,
   UpscaleOperation,
   VerticalAlignment,
-  // Sheet Generation
-  GenerateSheetAsyncRequest,
-  GenerateSheetRequest,
-  Sheet,
-  SheetCell,
-  SheetCellFormat,
-  SheetCellStyle,
-  SheetColumn,
-  SheetFontDefinition,
-  SheetFontStyle,
-  SheetFontWeight,
-  SheetFormat,
-  SheetHorizontalAlignment,
-  SheetNumberStyle,
-  SheetStyles,
 } from "./types.js";
 
 import type {
@@ -201,33 +201,23 @@ export class IterationLayer {
     return this.post("/image-generation/v1/generate", request);
   }
 
-  async generateImageAsync(
-    request: GenerateImageAsyncRequest,
-  ): Promise<AsyncResult> {
+  async generateImageAsync(request: GenerateImageAsyncRequest): Promise<AsyncResult> {
     return this.post("/image-generation/v1/generate", request);
   }
 
-  async generateDocument(
-    request: GenerateDocumentRequest,
-  ): Promise<BinaryResult> {
+  async generateDocument(request: GenerateDocumentRequest): Promise<BinaryResult> {
     return this.post("/document-generation/v1/generate", request);
   }
 
-  async generateDocumentAsync(
-    request: GenerateDocumentAsyncRequest,
-  ): Promise<AsyncResult> {
+  async generateDocumentAsync(request: GenerateDocumentAsyncRequest): Promise<AsyncResult> {
     return this.post("/document-generation/v1/generate", request);
   }
 
-  async generateSheet(
-    request: GenerateSheetRequest,
-  ): Promise<BinaryResult> {
+  async generateSheet(request: GenerateSheetRequest): Promise<BinaryResult> {
     return this.post("/sheet-generation/v1/generate", request);
   }
 
-  async generateSheetAsync(
-    request: GenerateSheetAsyncRequest,
-  ): Promise<AsyncResult> {
+  async generateSheetAsync(request: GenerateSheetAsyncRequest): Promise<AsyncResult> {
     return this.post("/sheet-generation/v1/generate", request);
   }
 
@@ -258,10 +248,7 @@ export class IterationLayer {
       return json.data;
     }
 
-    throw new IterationLayerError(
-      response.status,
-      "Unexpected response format",
-    );
+    throw new IterationLayerError(response.status, "Unexpected response format");
   }
 }
 

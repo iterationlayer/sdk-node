@@ -46,9 +46,7 @@ describe("IterationLayer", () => {
       });
 
       const [calledUrl] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(
-        `${DEFAULT_BASE_URL}/image-transformation/v1/transform`,
-      );
+      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/image-transformation/v1/transform`);
     });
 
     it("uses a custom base URL when provided", async () => {
@@ -74,9 +72,7 @@ describe("IterationLayer", () => {
       });
 
       const [calledUrl] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(
-        `${CUSTOM_BASE_URL}/image-transformation/v1/transform`,
-      );
+      expect(calledUrl).toBe(`${CUSTOM_BASE_URL}/image-transformation/v1/transform`);
     });
   });
 
@@ -124,20 +120,13 @@ describe("IterationLayer", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({ success: true, data: extractionData }),
-      );
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: extractionData }));
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
       const result = await client.extract(extractRequest);
 
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
-      expect(calledUrl).toBe(
-        `${DEFAULT_BASE_URL}/document-extraction/v1/extract`,
-      );
+      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/document-extraction/v1/extract`);
       expect(calledOptions.method).toBe("POST");
       expect(calledOptions.headers).toEqual({
         "Content-Type": "application/json",
@@ -179,10 +168,7 @@ describe("IterationLayer", () => {
         webhook_url: "https://example.com/webhook",
       });
 
-      const [, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
+      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
       expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
         "webhook_url",
         "https://example.com/webhook",
@@ -219,28 +205,19 @@ describe("IterationLayer", () => {
         mime_type: "image/webp",
       };
 
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({ success: true, data: binaryData }),
-      );
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: binaryData }));
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
       const result = await client.transform(transformRequest);
 
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
-      expect(calledUrl).toBe(
-        `${DEFAULT_BASE_URL}/image-transformation/v1/transform`,
-      );
+      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/image-transformation/v1/transform`);
       expect(calledOptions.method).toBe("POST");
       expect(calledOptions.headers).toEqual({
         "Content-Type": "application/json",
         Authorization: `Bearer ${TEST_API_KEY}`,
       });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(
-        transformRequest,
-      );
+      expect(JSON.parse(calledOptions.body as string)).toEqual(transformRequest);
       expect(result).toEqual(binaryData);
     });
   });
@@ -266,10 +243,7 @@ describe("IterationLayer", () => {
         webhook_url: "https://example.com/webhook",
       });
 
-      const [, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
+      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
       expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
         "webhook_url",
         "https://example.com/webhook",
@@ -308,28 +282,19 @@ describe("IterationLayer", () => {
     it("sends the correct request and parses binary result", async () => {
       const binaryData = { buffer: "pngdata", mime_type: "image/png" };
 
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({ success: true, data: binaryData }),
-      );
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: binaryData }));
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
       const result = await client.generateImage(generateImageRequest);
 
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
-      expect(calledUrl).toBe(
-        `${DEFAULT_BASE_URL}/image-generation/v1/generate`,
-      );
+      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/image-generation/v1/generate`);
       expect(calledOptions.method).toBe("POST");
       expect(calledOptions.headers).toEqual({
         "Content-Type": "application/json",
         Authorization: `Bearer ${TEST_API_KEY}`,
       });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(
-        generateImageRequest,
-      );
+      expect(JSON.parse(calledOptions.body as string)).toEqual(generateImageRequest);
       expect(result).toEqual(binaryData);
     });
   });
@@ -347,16 +312,11 @@ describe("IterationLayer", () => {
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
       const result = await client.generateImageAsync({
         dimensions: { width: 1200, height: 630 },
-        layers: [
-          { type: "solid-color", index: 0, hex_color: "#ffffff" },
-        ],
+        layers: [{ type: "solid-color", index: 0, hex_color: "#ffffff" }],
         webhook_url: "https://example.com/webhook",
       });
 
-      const [, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
+      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
       expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
         "webhook_url",
         "https://example.com/webhook",
@@ -452,28 +412,19 @@ describe("IterationLayer", () => {
     it("sends the correct request and parses binary result", async () => {
       const binaryData = { buffer: "pdfdata", mime_type: "application/pdf" };
 
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({ success: true, data: binaryData }),
-      );
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: binaryData }));
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
       const result = await client.generateDocument(generateDocumentRequest);
 
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
-      expect(calledUrl).toBe(
-        `${DEFAULT_BASE_URL}/document-generation/v1/generate`,
-      );
+      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/document-generation/v1/generate`);
       expect(calledOptions.method).toBe("POST");
       expect(calledOptions.headers).toEqual({
         "Content-Type": "application/json",
         Authorization: `Bearer ${TEST_API_KEY}`,
       });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(
-        generateDocumentRequest,
-      );
+      expect(JSON.parse(calledOptions.body as string)).toEqual(generateDocumentRequest);
       expect(result).toEqual(binaryData);
     });
   });
@@ -561,10 +512,7 @@ describe("IterationLayer", () => {
         webhook_url: "https://example.com/webhook",
       });
 
-      const [, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
+      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
       expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
         "webhook_url",
         "https://example.com/webhook",
@@ -598,30 +546,24 @@ describe("IterationLayer", () => {
     };
 
     it("sends the correct request and parses binary result", async () => {
-      const binaryData = { buffer: "sheetdata", mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
+      const binaryData = {
+        buffer: "sheetdata",
+        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      };
 
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({ success: true, data: binaryData }),
-      );
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: binaryData }));
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
       const result = await client.generateSheet(generateSheetRequest);
 
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
-      expect(calledUrl).toBe(
-        `${DEFAULT_BASE_URL}/sheet-generation/v1/generate`,
-      );
+      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/sheet-generation/v1/generate`);
       expect(calledOptions.method).toBe("POST");
       expect(calledOptions.headers).toEqual({
         "Content-Type": "application/json",
         Authorization: `Bearer ${TEST_API_KEY}`,
       });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(
-        generateSheetRequest,
-      );
+      expect(JSON.parse(calledOptions.body as string)).toEqual(generateSheetRequest);
       expect(result).toEqual(binaryData);
     });
   });
@@ -649,10 +591,7 @@ describe("IterationLayer", () => {
         webhook_url: "https://example.com/webhook",
       });
 
-      const [, calledOptions] = mockFetch.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
+      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
       expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
         "webhook_url",
         "https://example.com/webhook",
@@ -688,9 +627,7 @@ describe("IterationLayer", () => {
       } catch (error) {
         expect(error).toBeInstanceOf(IterationLayerError);
         expect((error as IterationLayerError).statusCode).toBe(401);
-        expect((error as IterationLayerError).errorMessage).toBe(
-          "Invalid API key",
-        );
+        expect((error as IterationLayerError).errorMessage).toBe("Invalid API key");
         expect((error as Error).message).toContain("Invalid API key");
       }
     });
@@ -724,10 +661,7 @@ describe("IterationLayer", () => {
 
     it("throws IterationLayerError on server error", async () => {
       mockFetch.mockResolvedValueOnce(
-        createMockResponse(
-          { success: false, error: "Internal server error" },
-          500,
-        ),
+        createMockResponse({ success: false, error: "Internal server error" }, 500),
       );
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });

@@ -371,13 +371,7 @@ export interface ImageFontDefinition {
   file: FileInput;
 }
 
-export type ImageOutputFormat =
-  | "png"
-  | "jpeg"
-  | "webp"
-  | "tiff"
-  | "gif"
-  | "avif";
+export type ImageOutputFormat = "png" | "jpeg" | "webp" | "tiff" | "gif" | "avif";
 
 interface LayerBase {
   index: number;
@@ -554,13 +548,7 @@ export type FontWeight =
   | "extrabold"
   | "black";
 
-export type BarcodeFormat =
-  | "code128"
-  | "ean13"
-  | "ean8"
-  | "code39"
-  | "itf"
-  | "codabar";
+export type BarcodeFormat = "code128" | "ean13" | "ean8" | "code39" | "itf" | "codabar";
 
 export interface DocumentMetadata {
   title: string;
@@ -891,10 +879,28 @@ export interface GenerateDocumentAsyncRequest extends GenerateDocumentRequest {
 // Sheet Generation
 
 export type SheetFormat = "csv" | "markdown" | "xlsx";
-export type SheetCellFormat = "text" | "number" | "decimal" | "currency" | "percentage" | "date" | "datetime" | "time" | "custom";
+export type SheetCellFormat =
+  | "text"
+  | "number"
+  | "decimal"
+  | "currency"
+  | "percentage"
+  | "date"
+  | "datetime"
+  | "time"
+  | "custom";
 export type SheetNumberStyle = "comma_period" | "period_comma" | "space_comma" | "space_period";
 export type SheetHorizontalAlignment = "left" | "center" | "right";
-export type SheetFontWeight = "thin" | "extralight" | "light" | "regular" | "medium" | "semibold" | "bold" | "extrabold" | "black";
+export type SheetFontWeight =
+  | "thin"
+  | "extralight"
+  | "light"
+  | "regular"
+  | "medium"
+  | "semibold"
+  | "bold"
+  | "extrabold"
+  | "black";
 export type SheetFontStyle = "normal" | "italic";
 
 export interface SheetCellStyle {
