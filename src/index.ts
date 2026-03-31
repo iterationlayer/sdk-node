@@ -14,6 +14,8 @@ export type {
   CompressToSizeOperation,
   ContentBlock,
   ConvertOperation,
+  ConvertRequest,
+  ConvertResult,
   CountryFieldConfig,
   CropOperation,
   CurrencyAmountFieldConfig,
@@ -84,6 +86,7 @@ export type {
   ListItem,
   ListStyle,
   Margins,
+  MarkdownFileResult,
   ModulateOperation,
   OpacityOperation,
   PageBreakBlock,
@@ -142,6 +145,8 @@ export type {
 import type {
   AsyncResult,
   BinaryResult,
+  ConvertRequest,
+  ConvertResult,
   ExtractAsyncRequest,
   ExtractionResult,
   ExtractRequest,
@@ -179,6 +184,10 @@ export class IterationLayer {
   constructor(config: IterationLayerConfig) {
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
+  }
+
+  async convertToMarkdown(request: ConvertRequest): Promise<ConvertResult> {
+    return this.post("/document-to-markdown/v1/convert", request);
   }
 
   async extract(request: ExtractRequest): Promise<ExtractionResult> {

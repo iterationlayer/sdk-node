@@ -678,4 +678,37 @@ describe("IterationLayer", () => {
       ).rejects.toThrow(IterationLayerError);
     });
   });
+
+  describe("convertToMarkdown", () => {
+    it("sends the correct request and parses the result", async () => {
+      const convertData = {
+        name: "doc.pdf",
+        mime_type: "application/pdf",
+        markdown: "# Document\n\nSome content.",
+      };
+
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: convertData }));
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const result = await client.convertToMarkdown({
+        file: {
+          type: "url",
+          name: "doc.pdf",
+          url: "https://example.com/doc.pdf",
+        },
+      });
+
+      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/document-to-markdown/v1/convert`);
+      expect(calledOptions.method).toBe("POST");
+      expect(calledOptions.headers).toEqual({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${TEST_API_KEY}`,
+      });
+      expect(JSON.parse(calledOptions.body as string)).toEqual({
+        file: { type: "url", name: "doc.pdf", url: "https://example.com/doc.pdf" },
+      });
+      expect(result).toEqual(convertData);
+    });
+  });
 });

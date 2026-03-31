@@ -36,6 +36,21 @@ export interface AsyncResult {
   message: string;
 }
 
+// ── Document to Markdown ────────────────────────────────────────────────────
+
+export interface MarkdownFileResult {
+  name: string;
+  mime_type: string;
+  markdown: string;
+  description?: string;
+}
+
+export type ConvertResult = MarkdownFileResult;
+
+export interface ConvertRequest {
+  file: FileInput;
+}
+
 // ── Document Extraction ────────────────────────────────────────────────────
 
 interface FieldConfigBase {
