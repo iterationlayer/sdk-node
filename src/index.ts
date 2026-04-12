@@ -13,6 +13,7 @@ export type {
   CalculatedFieldConfig,
   CompressToSizeOperation,
   ContentBlock,
+  ConvertAsyncRequest,
   ConvertOperation,
   ConvertRequest,
   ConvertResult,
@@ -145,6 +146,7 @@ export type {
 import type {
   AsyncResult,
   BinaryResult,
+  ConvertAsyncRequest,
   ConvertRequest,
   ConvertResult,
   ExtractAsyncRequest,
@@ -187,6 +189,10 @@ export class IterationLayer {
   }
 
   async convertToMarkdown(request: ConvertRequest): Promise<ConvertResult> {
+    return this.post("/document-to-markdown/v1/convert", request);
+  }
+
+  async convertToMarkdownAsync(request: ConvertAsyncRequest): Promise<AsyncResult> {
     return this.post("/document-to-markdown/v1/convert", request);
   }
 

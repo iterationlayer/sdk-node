@@ -51,6 +51,10 @@ export interface ConvertRequest {
   file: FileInput;
 }
 
+export interface ConvertAsyncRequest extends ConvertRequest {
+  webhook_url: string;
+}
+
 // ── Document Extraction ────────────────────────────────────────────────────
 
 interface FieldConfigBase {
