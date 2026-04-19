@@ -364,13 +364,13 @@ export interface TransformAsyncRequest extends TransformRequest {
 // ── Image Generation ───────────────────────────────────────────────────────
 
 export interface Dimensions {
-  width: number;
-  height: number;
+  width_in_px: number;
+  height_in_px: number;
 }
 
 export interface Position {
-  x: number;
-  y: number;
+  x_in_px: number;
+  y_in_px: number;
 }
 
 export interface AngledEdge {

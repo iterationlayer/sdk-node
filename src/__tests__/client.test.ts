@@ -258,7 +258,7 @@ describe("IterationLayer", () => {
 
   describe("generateImage", () => {
     const generateImageRequest = {
-      dimensions: { width: 1200, height: 630 },
+      dimensions: { width_in_px: 1200, height_in_px: 630 },
       layers: [
         {
           type: "solid-color" as const,
@@ -272,8 +272,8 @@ describe("IterationLayer", () => {
           font_name: "Arial",
           font_size_in_px: 48,
           text_color: "#000000",
-          position: { x: 100, y: 100 },
-          dimensions: { width: 1000, height: 200 },
+          position: { x_in_px: 100, y_in_px: 100 },
+          dimensions: { width_in_px: 1000, height_in_px: 200 },
         },
       ],
       output_format: "png" as const,
@@ -311,7 +311,7 @@ describe("IterationLayer", () => {
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
       const result = await client.generateImageAsync({
-        dimensions: { width: 1200, height: 630 },
+        dimensions: { width_in_px: 1200, height_in_px: 630 },
         layers: [{ type: "solid-color", index: 0, hex_color: "#ffffff" }],
         webhook_url: "https://example.com/webhook",
       });
