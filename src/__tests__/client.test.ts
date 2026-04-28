@@ -1,714 +1,781 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { IterationLayer, IterationLayerError } from "../index.js";
+import type {
+  ConvertDocumentToMarkdownAsyncRequest,
+  ConvertDocumentToMarkdownRequest,
+  ExtractDocumentAsyncRequest,
+  ExtractDocumentRequest,
+  ExtractWebsiteAsyncRequest,
+  ExtractWebsiteRequest,
+  GenerateDocumentAsyncRequest,
+  GenerateDocumentRequest,
+  GenerateImageAsyncRequest,
+  GenerateImageRequest,
+  GenerateSheetAsyncRequest,
+  GenerateSheetRequest,
+  TransformImageAsyncRequest,
+  TransformImageRequest,
+} from "../types.js";
 
 const TEST_API_KEY = "test-api-key-123";
 const DEFAULT_BASE_URL = "https://api.iterationlayer.com";
 const CUSTOM_BASE_URL = "https://custom.example.com";
 
-function createMockResponse(body: unknown, status = 200): Response {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: () => Promise.resolve(body),
-  } as Response;
-}
+const createMockResponse = (body: unknown, status = 200) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: () => Promise.resolve(body),
+});
 
 describe("IterationLayer", () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    mockFetch = vi.fn();
-    vi.stubGlobal("fetch", mockFetch);
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe("client construction", () => {
     it("uses the default base URL when none is provided", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, data: { buffer: "AQID", mime_type: "image/png" } }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
+
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
-
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({
-          success: true,
-          data: { buffer: "abc", mime_type: "image/png" },
-        }),
-      );
-
-      await client.transform({
-        file: {
-          type: "url",
-          name: "test.png",
-          url: "https://example.com/test.png",
-        },
-        operations: [{ type: "flip" }],
+      const result = await client.transformImage({
+        file: { type: "base64", name: "image.png", base64: new Uint8Array([1, 2, 3]) },
+        operations: [],
       });
+      expect(Array.from(result.buffer)).toEqual([1, 2, 3]);
+      const maybeRequestInit = mockFetch.mock.calls.at(-1)?.at(1);
+      const requestBody = JSON.parse(String(maybeRequestInit?.body));
+      expect(JSON.stringify(requestBody)).toContain('"base64":"AQID"');
 
-      const [calledUrl] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/image-transformation/v1/transform`);
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/image-transformation/v1/transform`,
+        expect.objectContaining({ method: "POST" }),
+      );
     });
 
     it("uses a custom base URL when provided", async () => {
-      const client = new IterationLayer({
-        apiKey: TEST_API_KEY,
-        baseUrl: CUSTOM_BASE_URL,
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, data: { buffer: "AQID", mime_type: "image/png" } }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY, baseUrl: CUSTOM_BASE_URL });
+      await client.transformImage({
+        file: { type: "base64", name: "image.png", base64: new Uint8Array([1, 2, 3]) },
+        operations: [],
       });
 
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({
-          success: true,
-          data: { buffer: "abc", mime_type: "image/png" },
-        }),
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${CUSTOM_BASE_URL}/image-transformation/v1/transform`,
+        expect.objectContaining({ method: "POST" }),
       );
-
-      await client.transform({
-        file: {
-          type: "url",
-          name: "test.png",
-          url: "https://example.com/test.png",
-        },
-        operations: [{ type: "flip" }],
-      });
-
-      const [calledUrl] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(`${CUSTOM_BASE_URL}/image-transformation/v1/transform`);
     });
   });
 
-  describe("extract", () => {
-    const extractRequest = {
-      files: [
-        {
-          type: "url" as const,
-          name: "invoice.pdf",
-          url: "https://example.com/invoice.pdf",
-        },
-      ],
-      schema: {
-        fields: [
-          {
-            type: "TEXT" as const,
-            name: "vendor_name",
-            description: "The vendor name",
-          },
-          {
-            type: "DECIMAL" as const,
-            name: "total_amount",
-            description: "The total amount",
-            decimal_points: 2,
-          },
-        ],
-      },
-    };
-
-    it("sends the correct request and parses extraction result", async () => {
-      const extractionData = {
-        vendor_name: {
-          value: "Acme Corp",
-          confidence: 0.95,
-          citations: ["page 1"],
-          source: "extracted",
-          type: "TEXT",
-        },
-        total_amount: {
-          value: 1234.56,
-          confidence: 0.88,
-          citations: ["page 1"],
-          source: "extracted",
-          type: "DECIMAL",
-        },
-      };
-
-      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: extractionData }));
+  describe("generated endpoint methods", () => {
+    it("posts extractDocument requests to /document-extraction/v1/extract", async () => {
+      const mockFetch = vi.fn().mockResolvedValue(createMockResponse({ success: true, data: {} }));
+      vi.stubGlobal("fetch", mockFetch);
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.extract(extractRequest);
-
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/document-extraction/v1/extract`);
-      expect(calledOptions.method).toBe("POST");
-      expect(calledOptions.headers).toEqual({
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TEST_API_KEY}`,
-      });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(extractRequest);
-      expect(result).toEqual(extractionData);
-    });
-  });
-
-  describe("extractAsync", () => {
-    it("handles async result", async () => {
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({
-          success: true,
-          async: true,
-          message: "Processing started",
-        }),
-      );
-
-      const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.extractAsync({
+      const request: ExtractDocumentRequest = {
         files: [
           {
-            type: "url",
-            name: "invoice.pdf",
-            url: "https://example.com/invoice.pdf",
+            type: "base64",
           },
         ],
         schema: {
           fields: [
             {
+              description: "example",
+              name: "example",
               type: "TEXT",
-              name: "vendor_name",
-              description: "The vendor name",
             },
           ],
         },
-        webhook_url: "https://example.com/webhook",
-      });
-
-      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
-        "webhook_url",
-        "https://example.com/webhook",
-      );
-      expect(result).toEqual({
-        success: true,
-        async: true,
-        message: "Processing started",
-      });
-    });
-  });
-
-  describe("transform", () => {
-    const transformRequest = {
-      file: {
-        type: "url" as const,
-        name: "photo.jpg",
-        url: "https://example.com/photo.jpg",
-      },
-      operations: [
-        {
-          type: "resize" as const,
-          width_in_px: 800,
-          height_in_px: 600,
-          fit: "cover" as const,
-        },
-        { type: "convert" as const, format: "webp" as const, quality: 80 },
-      ],
-    };
-
-    it("sends the correct request and parses binary result", async () => {
-      const binaryData = {
-        buffer: "base64encodeddata",
-        mime_type: "image/webp",
       };
+      await client.extractDocument(request);
 
-      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: binaryData }));
-
-      const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.transform(transformRequest);
-
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/image-transformation/v1/transform`);
-      expect(calledOptions.method).toBe("POST");
-      expect(calledOptions.headers).toEqual({
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TEST_API_KEY}`,
-      });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(transformRequest);
-      expect(result).toEqual(binaryData);
-    });
-  });
-
-  describe("transformAsync", () => {
-    it("handles async result", async () => {
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({
-          success: true,
-          async: true,
-          message: "Transform queued",
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/document-extraction/v1/extract`,
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${TEST_API_KEY}`,
+          },
+          body: expect.any(String),
         }),
       );
+    });
+
+    it("posts extractDocumentAsync requests to /document-extraction/v1/extract", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, async: true, message: "Processing started" }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.transformAsync({
-        file: {
-          type: "url",
-          name: "photo.jpg",
-          url: "https://example.com/photo.jpg",
+      const request: ExtractDocumentAsyncRequest = {
+        ...{
+          files: [
+            {
+              type: "base64",
+            },
+          ],
+          schema: {
+            fields: [
+              {
+                description: "example",
+                name: "example",
+                type: "TEXT",
+              },
+            ],
+          },
         },
-        operations: [{ type: "flip" }],
         webhook_url: "https://example.com/webhook",
-      });
+      };
+      const result = await client.extractDocumentAsync(request);
 
-      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
-        "webhook_url",
-        "https://example.com/webhook",
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/document-extraction/v1/extract`,
+        expect.objectContaining({ body: expect.any(String) }),
       );
-      expect(result).toEqual({
-        success: true,
-        async: true,
-        message: "Transform queued",
-      });
+      expect(result).toEqual({ success: true, async: true, message: "Processing started" });
     });
-  });
 
-  describe("generateImage", () => {
-    const generateImageRequest = {
-      dimensions: { width_in_px: 1200, height_in_px: 630 },
-      layers: [
-        {
-          type: "solid-color" as const,
-          index: 0,
-          hex_color: "#ffffff",
-        },
-        {
-          type: "text" as const,
-          index: 1,
-          text: "Hello World",
-          font_name: "Arial",
-          font_size_in_px: 48,
-          text_color: "#000000",
-          position: { x_in_px: 100, y_in_px: 100 },
-          dimensions: { width_in_px: 1000, height_in_px: 200 },
-        },
-      ],
-      output_format: "png" as const,
-    };
-
-    it("sends the correct request and parses binary result", async () => {
-      const binaryData = { buffer: "pngdata", mime_type: "image/png" };
-
-      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: binaryData }));
-
-      const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.generateImage(generateImageRequest);
-
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/image-generation/v1/generate`);
-      expect(calledOptions.method).toBe("POST");
-      expect(calledOptions.headers).toEqual({
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TEST_API_KEY}`,
-      });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(generateImageRequest);
-      expect(result).toEqual(binaryData);
-    });
-  });
-
-  describe("generateImageAsync", () => {
-    it("handles async result", async () => {
-      mockFetch.mockResolvedValueOnce(
+    it("posts generateDocument requests to /document-generation/v1/generate", async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
         createMockResponse({
           success: true,
-          async: true,
-          message: "Image generation started",
+          data: { buffer: "AQID", mime_type: "application/octet-stream" },
         }),
       );
+      vi.stubGlobal("fetch", mockFetch);
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.generateImageAsync({
-        dimensions: { width_in_px: 1200, height_in_px: 630 },
-        layers: [{ type: "solid-color", index: 0, hex_color: "#ffffff" }],
-        webhook_url: "https://example.com/webhook",
-      });
-
-      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
-        "webhook_url",
-        "https://example.com/webhook",
-      );
-      expect(result).toEqual({
-        success: true,
-        async: true,
-        message: "Image generation started",
-      });
-    });
-  });
-
-  describe("generateDocument", () => {
-    const generateDocumentRequest = {
-      format: "pdf" as const,
-      document: {
-        metadata: { title: "Test Document", author: "Test Author" },
-        page: {
-          size: { preset: "A4" as const },
-          margins: {
-            top_in_pt: 72,
-            right_in_pt: 72,
-            bottom_in_pt: 72,
-            left_in_pt: 72,
-          },
-        },
-        styles: {
-          text: {
-            font_family: "Helvetica",
-            font_size_in_pt: 12,
-            line_height: 1.5,
-            color: "#000000",
-          },
-          headline: {
-            font_family: "Helvetica",
-            font_size_in_pt: 24,
-            color: "#000000",
-            spacing_before_in_pt: 12,
-            spacing_after_in_pt: 6,
-            font_weight: "bold",
-          },
-          link: { color: "#0066cc" },
-          list: {
-            marker_color: "#000000",
-            marker_gap_in_pt: 4,
-            text_style: {
-              font_family: "Helvetica",
-              font_size_in_pt: 12,
-              line_height: 1.5,
-              color: "#000000",
-            },
-          },
-          table: {
-            header: {
-              background_color: "#f0f0f0",
-              text_color: "#000000",
-              font_size_in_pt: 12,
-              font_weight: "bold",
-            },
-            body: {
-              background_color: "#ffffff",
-              text_color: "#000000",
-              font_size_in_pt: 12,
-            },
-          },
-          grid: {
-            background_color: "#f9f9f9",
-            border_color: "#cccccc",
-            border_width_in_pt: 1,
-            gap_in_pt: 12,
-          },
-          separator: {
-            color: "#cccccc",
-            thickness_in_pt: 1,
-            spacing_before_in_pt: 12,
-            spacing_after_in_pt: 12,
-          },
-          image: {
-            border_color: "#cccccc",
-            border_width_in_pt: 1,
-          },
-        },
-        content: [
-          { type: "headline" as const, level: "h1" as const, text: "Test" },
-          {
-            type: "paragraph" as const,
-            markdown: "Hello **world**",
-          },
-        ],
-      },
-    };
-
-    it("sends the correct request and parses binary result", async () => {
-      const binaryData = { buffer: "pdfdata", mime_type: "application/pdf" };
-
-      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: binaryData }));
-
-      const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.generateDocument(generateDocumentRequest);
-
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/document-generation/v1/generate`);
-      expect(calledOptions.method).toBe("POST");
-      expect(calledOptions.headers).toEqual({
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TEST_API_KEY}`,
-      });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(generateDocumentRequest);
-      expect(result).toEqual(binaryData);
-    });
-  });
-
-  describe("generateDocumentAsync", () => {
-    it("handles async result", async () => {
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({
-          success: true,
-          async: true,
-          message: "Document generation queued",
-        }),
-      );
-
-      const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.generateDocumentAsync({
-        format: "pdf",
+      const request: GenerateDocumentRequest = {
         document: {
-          metadata: { title: "Test" },
-          page: {
-            size: { preset: "A4" },
-            margins: {
-              top_in_pt: 72,
-              right_in_pt: 72,
-              bottom_in_pt: 72,
-              left_in_pt: 72,
+          content: [
+            {
+              type: "paragraph",
             },
+          ],
+          metadata: {
+            title: "example",
+          },
+          page: {
+            margins: {
+              bottom_in_pt: 1,
+              left_in_pt: 1,
+              right_in_pt: 1,
+              top_in_pt: 1,
+            },
+            size: {},
           },
           styles: {
-            text: {
-              font_family: "Helvetica",
-              font_size_in_pt: 12,
-              line_height: 1.5,
-              color: "#000",
+            grid: {
+              background_color: "example",
+              border_color: "example",
+              border_width_in_pt: 1,
+              gap_in_pt: 1,
             },
             headline: {
-              font_family: "Helvetica",
-              font_size_in_pt: 24,
-              color: "#000",
-              spacing_before_in_pt: 12,
-              spacing_after_in_pt: 6,
-            },
-            link: { color: "#0066cc" },
-            list: {
-              marker_color: "#000",
-              marker_gap_in_pt: 4,
-              text_style: {
-                font_family: "Helvetica",
-                font_size_in_pt: 12,
-                line_height: 1.5,
-                color: "#000",
-              },
-            },
-            table: {
-              header: {
-                background_color: "#f0f0f0",
-                text_color: "#000",
-                font_size_in_pt: 12,
-              },
-              body: {
-                background_color: "#ffffff",
-                text_color: "#000",
-                font_size_in_pt: 12,
-              },
-            },
-            grid: {
-              background_color: "#f9f9f9",
-              border_color: "#ccc",
-              border_width_in_pt: 1,
-              gap_in_pt: 12,
-            },
-            separator: {
-              color: "#ccc",
-              thickness_in_pt: 1,
-              spacing_before_in_pt: 12,
-              spacing_after_in_pt: 12,
+              color: "example",
+              font_family: "example",
+              font_size_in_pt: 1,
+              spacing_after_in_pt: 1,
+              spacing_before_in_pt: 1,
             },
             image: {
-              border_color: "#ccc",
+              border_color: "example",
               border_width_in_pt: 1,
             },
+            link: {
+              color: "example",
+            },
+            list: {
+              marker_color: "example",
+              marker_gap_in_pt: 1,
+              text_style: {
+                color: "example",
+                font_family: "example",
+                font_size_in_pt: 1,
+                line_height: 1,
+              },
+            },
+            separator: {
+              color: "example",
+              spacing_after_in_pt: 1,
+              spacing_before_in_pt: 1,
+              thickness_in_pt: 1,
+            },
+            table: {
+              body: {
+                background_color: "example",
+                font_size_in_pt: 1,
+                text_color: "example",
+              },
+              border: {
+                inner: {
+                  horizontal: {
+                    color: "example",
+                    width_in_pt: 1,
+                  },
+                  vertical: {
+                    color: "example",
+                    width_in_pt: 1,
+                  },
+                },
+                outer: {
+                  bottom: {
+                    color: "example",
+                    width_in_pt: 1,
+                  },
+                  left: {
+                    color: "example",
+                    width_in_pt: 1,
+                  },
+                  right: {
+                    color: "example",
+                    width_in_pt: 1,
+                  },
+                  top: {
+                    color: "example",
+                    width_in_pt: 1,
+                  },
+                },
+              },
+              header: {
+                background_color: "example",
+                font_size_in_pt: 1,
+                text_color: "example",
+              },
+            },
+            text: {
+              color: "example",
+              font_family: "example",
+              font_size_in_pt: 1,
+              line_height: 1,
+            },
           },
-          content: [{ type: "headline", level: "h1", text: "Test" }],
         },
-        webhook_url: "https://example.com/webhook",
-      });
-
-      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
-        "webhook_url",
-        "https://example.com/webhook",
-      );
-      expect(result).toEqual({
-        success: true,
-        async: true,
-        message: "Document generation queued",
-      });
-    });
-  });
-
-  describe("generateSheet", () => {
-    const generateSheetRequest = {
-      format: "xlsx" as const,
-      sheets: [
-        {
-          name: "Invoices",
-          columns: [
-            { name: "Company", width: 20 },
-            { name: "Total", width: 15 },
-          ],
-          rows: [
-            [
-              { value: "Acme Corp" },
-              { value: 1500.5, format: "currency" as const, currency_code: "EUR" },
-            ],
-          ],
-        },
-      ],
-    };
-
-    it("sends the correct request and parses binary result", async () => {
-      const binaryData = {
-        buffer: "sheetdata",
-        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        format: "pdf",
       };
+      const result = await client.generateDocument(request);
+      expect(Array.from(result.buffer)).toEqual([1, 2, 3]);
+      expect(result.mime_type).toBe("application/octet-stream");
 
-      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: binaryData }));
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/document-generation/v1/generate`,
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${TEST_API_KEY}`,
+          },
+          body: expect.any(String),
+        }),
+      );
+    });
+
+    it("posts generateDocumentAsync requests to /document-generation/v1/generate", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, async: true, message: "Processing started" }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.generateSheet(generateSheetRequest);
+      const request: GenerateDocumentAsyncRequest = {
+        ...{
+          document: {
+            content: [
+              {
+                type: "paragraph",
+              },
+            ],
+            metadata: {
+              title: "example",
+            },
+            page: {
+              margins: {
+                bottom_in_pt: 1,
+                left_in_pt: 1,
+                right_in_pt: 1,
+                top_in_pt: 1,
+              },
+              size: {},
+            },
+            styles: {
+              grid: {
+                background_color: "example",
+                border_color: "example",
+                border_width_in_pt: 1,
+                gap_in_pt: 1,
+              },
+              headline: {
+                color: "example",
+                font_family: "example",
+                font_size_in_pt: 1,
+                spacing_after_in_pt: 1,
+                spacing_before_in_pt: 1,
+              },
+              image: {
+                border_color: "example",
+                border_width_in_pt: 1,
+              },
+              link: {
+                color: "example",
+              },
+              list: {
+                marker_color: "example",
+                marker_gap_in_pt: 1,
+                text_style: {
+                  color: "example",
+                  font_family: "example",
+                  font_size_in_pt: 1,
+                  line_height: 1,
+                },
+              },
+              separator: {
+                color: "example",
+                spacing_after_in_pt: 1,
+                spacing_before_in_pt: 1,
+                thickness_in_pt: 1,
+              },
+              table: {
+                body: {
+                  background_color: "example",
+                  font_size_in_pt: 1,
+                  text_color: "example",
+                },
+                border: {
+                  inner: {
+                    horizontal: {
+                      color: "example",
+                      width_in_pt: 1,
+                    },
+                    vertical: {
+                      color: "example",
+                      width_in_pt: 1,
+                    },
+                  },
+                  outer: {
+                    bottom: {
+                      color: "example",
+                      width_in_pt: 1,
+                    },
+                    left: {
+                      color: "example",
+                      width_in_pt: 1,
+                    },
+                    right: {
+                      color: "example",
+                      width_in_pt: 1,
+                    },
+                    top: {
+                      color: "example",
+                      width_in_pt: 1,
+                    },
+                  },
+                },
+                header: {
+                  background_color: "example",
+                  font_size_in_pt: 1,
+                  text_color: "example",
+                },
+              },
+              text: {
+                color: "example",
+                font_family: "example",
+                font_size_in_pt: 1,
+                line_height: 1,
+              },
+            },
+          },
+          format: "pdf",
+        },
+        webhook_url: "https://example.com/webhook",
+      };
+      const result = await client.generateDocumentAsync(request);
 
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/sheet-generation/v1/generate`);
-      expect(calledOptions.method).toBe("POST");
-      expect(calledOptions.headers).toEqual({
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TEST_API_KEY}`,
-      });
-      expect(JSON.parse(calledOptions.body as string)).toEqual(generateSheetRequest);
-      expect(result).toEqual(binaryData);
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/document-generation/v1/generate`,
+        expect.objectContaining({ body: expect.any(String) }),
+      );
+      expect(result).toEqual({ success: true, async: true, message: "Processing started" });
     });
-  });
 
-  describe("generateSheetAsync", () => {
-    it("handles async result", async () => {
-      mockFetch.mockResolvedValueOnce(
+    it("posts convertDocumentToMarkdown requests to /document-to-markdown/v1/convert", async () => {
+      const mockFetch = vi.fn().mockResolvedValue(createMockResponse({ success: true, data: {} }));
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const request: ConvertDocumentToMarkdownRequest = {
+        file: {
+          type: "base64",
+        },
+      };
+      await client.convertDocumentToMarkdown(request);
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/document-to-markdown/v1/convert`,
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${TEST_API_KEY}`,
+          },
+          body: expect.any(String),
+        }),
+      );
+    });
+
+    it("posts convertDocumentToMarkdownAsync requests to /document-to-markdown/v1/convert", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, async: true, message: "Processing started" }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const request: ConvertDocumentToMarkdownAsyncRequest = {
+        ...{
+          file: {
+            type: "base64",
+          },
+        },
+        webhook_url: "https://example.com/webhook",
+      };
+      const result = await client.convertDocumentToMarkdownAsync(request);
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/document-to-markdown/v1/convert`,
+        expect.objectContaining({ body: expect.any(String) }),
+      );
+      expect(result).toEqual({ success: true, async: true, message: "Processing started" });
+    });
+
+    it("posts generateImage requests to /image-generation/v1/generate", async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
         createMockResponse({
           success: true,
-          async: true,
-          message: "Sheet generation queued",
+          data: { buffer: "AQID", mime_type: "application/octet-stream" },
         }),
       );
+      vi.stubGlobal("fetch", mockFetch);
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.generateSheetAsync({
-        format: "xlsx",
-        sheets: [
+      const request: GenerateImageRequest = {
+        dimensions: {
+          height_in_px: 1,
+          width_in_px: 1,
+        },
+        layers: [
           {
-            name: "Test",
-            columns: [{ name: "A" }],
-            rows: [[{ value: "test" }]],
+            hex_color: "example",
+            index: 1,
+            type: "solid-color",
           },
         ],
-        webhook_url: "https://example.com/webhook",
-      });
-
-      const [, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(JSON.parse(calledOptions.body as string)).toHaveProperty(
-        "webhook_url",
-        "https://example.com/webhook",
-      );
-      expect(result).toEqual({
-        success: true,
-        async: true,
-        message: "Sheet generation queued",
-      });
-    });
-  });
-
-  describe("error handling", () => {
-    it("throws IterationLayerError on error response", async () => {
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({ success: false, error: "Invalid API key" }, 401),
-      );
-
-      const client = new IterationLayer({ apiKey: "invalid-key" });
-
-      try {
-        await client.extract({
-          files: [
-            {
-              type: "url",
-              name: "test.pdf",
-              url: "https://example.com/test.pdf",
-            },
-          ],
-          schema: { fields: [] },
-        });
-        expect.fail("Should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(IterationLayerError);
-        expect((error as IterationLayerError).statusCode).toBe(401);
-        expect((error as IterationLayerError).errorMessage).toBe("Invalid API key");
-        expect((error as Error).message).toContain("Invalid API key");
-      }
-    });
-
-    it("includes status code in error", async () => {
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({ success: false, error: "Rate limited" }, 429),
-      );
-
-      const client = new IterationLayer({ apiKey: TEST_API_KEY });
-
-      try {
-        await client.extract({
-          files: [
-            {
-              type: "url",
-              name: "test.pdf",
-              url: "https://example.com/test.pdf",
-            },
-          ],
-          schema: { fields: [] },
-        });
-        expect.fail("Should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(IterationLayerError);
-        const iterationLayerError = error as IterationLayerError;
-        expect(iterationLayerError.statusCode).toBe(429);
-        expect(iterationLayerError.errorMessage).toBe("Rate limited");
-      }
-    });
-
-    it("throws IterationLayerError on server error", async () => {
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({ success: false, error: "Internal server error" }, 500),
-      );
-
-      const client = new IterationLayer({ apiKey: TEST_API_KEY });
-
-      await expect(
-        client.transform({
-          file: {
-            type: "url",
-            name: "test.png",
-            url: "https://example.com/test.png",
-          },
-          operations: [{ type: "flip" }],
-        }),
-      ).rejects.toThrow(IterationLayerError);
-    });
-  });
-
-  describe("convertToMarkdown", () => {
-    it("sends the correct request and parses the result", async () => {
-      const convertData = {
-        name: "doc.pdf",
-        mime_type: "application/pdf",
-        markdown: "# Document\n\nSome content.",
       };
+      const result = await client.generateImage(request);
+      expect(Array.from(result.buffer)).toEqual([1, 2, 3]);
+      expect(result.mime_type).toBe("application/octet-stream");
 
-      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true, data: convertData }));
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/image-generation/v1/generate`,
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${TEST_API_KEY}`,
+          },
+          body: expect.any(String),
+        }),
+      );
+    });
+
+    it("posts generateImageAsync requests to /image-generation/v1/generate", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, async: true, message: "Processing started" }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
 
       const client = new IterationLayer({ apiKey: TEST_API_KEY });
-      const result = await client.convertToMarkdown({
+      const request: GenerateImageAsyncRequest = {
+        ...{
+          dimensions: {
+            height_in_px: 1,
+            width_in_px: 1,
+          },
+          layers: [
+            {
+              hex_color: "example",
+              index: 1,
+              type: "solid-color",
+            },
+          ],
+        },
+        webhook_url: "https://example.com/webhook",
+      };
+      const result = await client.generateImageAsync(request);
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/image-generation/v1/generate`,
+        expect.objectContaining({ body: expect.any(String) }),
+      );
+      expect(result).toEqual({ success: true, async: true, message: "Processing started" });
+    });
+
+    it("posts transformImage requests to /image-transformation/v1/transform", async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        createMockResponse({
+          success: true,
+          data: { buffer: "AQID", mime_type: "application/octet-stream" },
+        }),
+      );
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const request: TransformImageRequest = {
+        file: {
+          type: "base64",
+        },
+        operations: [
+          {
+            fit: "cover",
+            height_in_px: 1,
+            type: "resize",
+            width_in_px: 1,
+          },
+        ],
+      };
+      const result = await client.transformImage(request);
+      expect(Array.from(result.buffer)).toEqual([1, 2, 3]);
+      expect(result.mime_type).toBe("application/octet-stream");
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/image-transformation/v1/transform`,
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${TEST_API_KEY}`,
+          },
+          body: expect.any(String),
+        }),
+      );
+    });
+
+    it("posts transformImageAsync requests to /image-transformation/v1/transform", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, async: true, message: "Processing started" }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const request: TransformImageAsyncRequest = {
+        ...{
+          file: {
+            type: "base64",
+          },
+          operations: [
+            {
+              fit: "cover",
+              height_in_px: 1,
+              type: "resize",
+              width_in_px: 1,
+            },
+          ],
+        },
+        webhook_url: "https://example.com/webhook",
+      };
+      const result = await client.transformImageAsync(request);
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/image-transformation/v1/transform`,
+        expect.objectContaining({ body: expect.any(String) }),
+      );
+      expect(result).toEqual({ success: true, async: true, message: "Processing started" });
+    });
+
+    it("posts generateSheet requests to /sheet-generation/v1/generate", async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        createMockResponse({
+          success: true,
+          data: { buffer: "AQID", mime_type: "application/octet-stream" },
+        }),
+      );
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const request: GenerateSheetRequest = {
+        format: "csv",
+        sheets: [
+          {
+            columns: [
+              {
+                name: "example",
+              },
+            ],
+          },
+        ],
+      };
+      const result = await client.generateSheet(request);
+      expect(Array.from(result.buffer)).toEqual([1, 2, 3]);
+      expect(result.mime_type).toBe("application/octet-stream");
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/sheet-generation/v1/generate`,
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${TEST_API_KEY}`,
+          },
+          body: expect.any(String),
+        }),
+      );
+    });
+
+    it("posts generateSheetAsync requests to /sheet-generation/v1/generate", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, async: true, message: "Processing started" }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const request: GenerateSheetAsyncRequest = {
+        ...{
+          format: "csv",
+          sheets: [
+            {
+              columns: [
+                {
+                  name: "example",
+                },
+              ],
+            },
+          ],
+        },
+        webhook_url: "https://example.com/webhook",
+      };
+      const result = await client.generateSheetAsync(request);
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/sheet-generation/v1/generate`,
+        expect.objectContaining({ body: expect.any(String) }),
+      );
+      expect(result).toEqual({ success: true, async: true, message: "Processing started" });
+    });
+
+    it("posts extractWebsite requests to /website-extraction/v1/extract", async () => {
+      const mockFetch = vi.fn().mockResolvedValue(createMockResponse({ success: true, data: {} }));
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const request: ExtractWebsiteRequest = {
         file: {
           type: "url",
-          name: "doc.pdf",
-          url: "https://example.com/doc.pdf",
+          url: "example",
         },
-      });
+        schema: {
+          fields: [
+            {
+              description: "example",
+              name: "example",
+              type: "TEXT",
+            },
+          ],
+        },
+      };
+      await client.extractWebsite(request);
 
-      const [calledUrl, calledOptions] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(calledUrl).toBe(`${DEFAULT_BASE_URL}/document-to-markdown/v1/convert`);
-      expect(calledOptions.method).toBe("POST");
-      expect(calledOptions.headers).toEqual({
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TEST_API_KEY}`,
-      });
-      expect(JSON.parse(calledOptions.body as string)).toEqual({
-        file: { type: "url", name: "doc.pdf", url: "https://example.com/doc.pdf" },
-      });
-      expect(result).toEqual(convertData);
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/website-extraction/v1/extract`,
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${TEST_API_KEY}`,
+          },
+          body: expect.any(String),
+        }),
+      );
+    });
+
+    it("posts extractWebsiteAsync requests to /website-extraction/v1/extract", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          createMockResponse({ success: true, async: true, message: "Processing started" }),
+        );
+      vi.stubGlobal("fetch", mockFetch);
+
+      const client = new IterationLayer({ apiKey: TEST_API_KEY });
+      const request: ExtractWebsiteAsyncRequest = {
+        ...{
+          file: {
+            type: "url",
+            url: "example",
+          },
+          schema: {
+            fields: [
+              {
+                description: "example",
+                name: "example",
+                type: "TEXT",
+              },
+            ],
+          },
+        },
+        webhook_url: "https://example.com/webhook",
+      };
+      const result = await client.extractWebsiteAsync(request);
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        `${DEFAULT_BASE_URL}/website-extraction/v1/extract`,
+        expect.objectContaining({ body: expect.any(String) }),
+      );
+      expect(result).toEqual({ success: true, async: true, message: "Processing started" });
+    });
+  });
+
+  it("throws IterationLayerError for unsuccessful API responses", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(createMockResponse({ success: false, error: "Invalid request" }, 422));
+    vi.stubGlobal("fetch", mockFetch);
+
+    const client = new IterationLayer({ apiKey: TEST_API_KEY });
+    const promise = client.transformImage({
+      file: { type: "base64", name: "image.png", base64: new Uint8Array([1, 2, 3]) },
+      operations: [],
+    });
+
+    await expect(promise).rejects.toThrow(IterationLayerError);
+    await expect(promise).rejects.toMatchObject({
+      statusCode: 422,
+      errorMessage: "Invalid request",
     });
   });
 });

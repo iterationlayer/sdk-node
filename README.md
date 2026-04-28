@@ -21,7 +21,7 @@ const client = new IterationLayer({ apiKey: "il_your_api_key" });
 Extract structured data from documents using AI.
 
 ```typescript
-const result = await client.extract({
+const result = await client.extractDocument({
   files: [{ type: "url", name: "invoice.pdf", url: "https://example.com/invoice.pdf" }],
   schema: {
     fields: [
@@ -35,12 +35,34 @@ console.log(result.company_name.value); // "Acme Corp"
 console.log(result.company_name.confidence); // 0.95
 ```
 
+### Website Extraction
+
+Extract structured data from public website pages. Static fetching is used by default; set `should_render_javascript` when a page needs browser rendering.
+
+```typescript
+const result = await client.extractWebsite({
+  file: {
+    type: "url",
+    url: "https://example.com/pricing",
+    fetch_options: { should_render_javascript: true },
+  },
+  schema: {
+    fields: [
+      { type: "TEXT", name: "plan_name", description: "The pricing plan name" },
+      { type: "CURRENCY_AMOUNT", name: "price", description: "The monthly price" },
+    ],
+  },
+});
+
+console.log(result.plan_name.value); // "Pro"
+```
+
 ### Image Transformation
 
 Resize, crop, convert, and apply effects to images.
 
 ```typescript
-const result = await client.transform({
+const result = await client.transformImage({
   file: { type: "url", name: "photo.jpg", url: "https://example.com/photo.jpg" },
   operations: [
     { type: "resize", width_in_px: 800, height_in_px: 600, fit: "cover" },
@@ -145,7 +167,7 @@ const sheetBuffer = Buffer.from(result.buffer, "base64");
 Use the `*Async` methods to receive results via webhook instead of waiting for the response.
 
 ```typescript
-const result = await client.extractAsync({
+const result = await client.extractDocumentAsync({
   files: [{ type: "url", name: "invoice.pdf", url: "https://example.com/invoice.pdf" }],
   schema: {
     fields: [{ type: "CURRENCY_AMOUNT", name: "total", description: "The invoice total" }],
@@ -162,7 +184,7 @@ console.log(result.message); // "Request accepted..."
 import { IterationLayerError } from "iterationlayer";
 
 try {
-  await client.extract({ ... });
+  await client.extractDocument({ ... });
 } catch (error) {
   if (error instanceof IterationLayerError) {
     console.log(error.statusCode); // 422

@@ -1,165 +1,25 @@
-export type {
-  AddressFieldConfig,
-  AngledEdge,
-  ArrayFieldConfig,
-  AsyncResult,
-  AutoContrastOperation,
-  BarcodeFormat,
-  BarcodeLayer,
-  BinaryResult,
-  BlurOperation,
-  BooleanFieldConfig,
-  BorderStyle,
-  CalculatedFieldConfig,
-  CompressToSizeOperation,
-  ContentBlock,
-  ConvertAsyncRequest,
-  ConvertOperation,
-  ConvertRequest,
-  ConvertResult,
-  CountryFieldConfig,
-  CropOperation,
-  CurrencyAmountFieldConfig,
-  CurrencyCodeFieldConfig,
-  DateFieldConfig,
-  DatetimeFieldConfig,
-  DecimalFieldConfig,
-  DenoiseOperation,
-  // Image Generation
-  Dimensions,
-  DocumentBarcodeBlock,
-  DocumentDefinition,
-  DocumentFontDefinition,
-  // Document Generation
-  DocumentFormat,
-  DocumentMetadata,
-  DocumentPage,
-  DocumentQrCodeBlock,
-  DocumentStyles,
-  EmailFieldConfig,
-  EnumFieldConfig,
-  ExtendOperation,
-  ExtractAsyncRequest,
-  // Responses
-  ExtractionFieldResult,
-  ExtractionResult,
-  ExtractRequest,
-  // Document Extraction
-  FieldConfig,
-  // File input
-  FileInput,
-  FileInputBase64,
-  FileInputUrl,
-  FlipOperation,
-  FlopOperation,
-  FontWeight,
-  GammaOperation,
-  GenerateDocumentAsyncRequest,
-  GenerateDocumentRequest,
-  GenerateImageAsyncRequest,
-  GenerateImageRequest,
-  // Sheet Generation
-  GenerateSheetAsyncRequest,
-  GenerateSheetRequest,
-  GradientColorStop,
-  GradientLayer,
-  GrayscaleOperation,
-  GridBlock,
-  GridColumn,
-  GridStyle,
-  HeaderFooterBlock,
-  HeadlineBlock,
-  HeadlineLevel,
-  HeadlineStyle,
-  HeadlineTableOfContents,
-  HorizontalAlignment,
-  IbanFieldConfig,
-  ImageBlock,
-  ImageFontDefinition,
-  ImageLayer,
-  ImageOutputFormat,
-  ImageStyle,
-  IntegerFieldConfig,
-  InvertColorsOperation,
-  Layer,
-  LinkStyle,
-  ListBlock,
-  ListItem,
-  ListStyle,
-  Margins,
-  MarkdownFileResult,
-  ModulateOperation,
-  OpacityOperation,
-  PageBreakBlock,
-  PageNumberBlock,
-  PageSize,
-  PageSizePreset,
-  ParagraphBlock,
-  ParagraphRun,
-  Position,
-  QrCodeLayer,
-  RemoveBackgroundOperation,
-  RemoveTransparencyOperation,
-  ResizeOperation,
-  RotateOperation,
-  SeparatorBlock,
-  SeparatorStyle,
-  SharpenOperation,
-  Sheet,
-  SheetCell,
-  SheetCellFormat,
-  SheetCellStyle,
-  SheetColumn,
-  SheetFontDefinition,
-  SheetFontStyle,
-  SheetFontWeight,
-  SheetFormat,
-  SheetHorizontalAlignment,
-  SheetNumberStyle,
-  SheetStyles,
-  SmartCropOperation,
-  SolidColorLayer,
-  TableBlock,
-  TableBodyStyle,
-  TableCell,
-  TableHeaderStyle,
-  TableOfContentsBlock,
-  TableRow,
-  TableStyle,
-  TextAlignment,
-  TextareaFieldConfig,
-  TextFieldConfig,
-  TextLayer,
-  TextStyle,
-  ThresholdOperation,
-  TimeFieldConfig,
-  TintOperation,
-  // Image Transformation
-  TransformAsyncRequest,
-  TransformOperation,
-  TransformRequest,
-  TrimOperation,
-  UpscaleOperation,
-  VerticalAlignment,
-} from "./types.js";
+export type * from "./types.js";
 
 import type {
   AsyncResult,
   BinaryResult,
-  ConvertAsyncRequest,
-  ConvertRequest,
+  ConvertDocumentToMarkdownAsyncRequest,
+  ConvertDocumentToMarkdownRequest,
   ConvertResult,
-  ExtractAsyncRequest,
+  ErrorResponse,
+  ExtractDocumentAsyncRequest,
+  ExtractDocumentRequest,
   ExtractionResult,
-  ExtractRequest,
+  ExtractWebsiteAsyncRequest,
+  ExtractWebsiteRequest,
   GenerateDocumentAsyncRequest,
   GenerateDocumentRequest,
   GenerateImageAsyncRequest,
   GenerateImageRequest,
   GenerateSheetAsyncRequest,
   GenerateSheetRequest,
-  TransformAsyncRequest,
-  TransformRequest,
+  TransformImageAsyncRequest,
+  TransformImageRequest,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://api.iterationlayer.com";
@@ -167,6 +27,46 @@ const DEFAULT_BASE_URL = "https://api.iterationlayer.com";
 export interface IterationLayerConfig {
   apiKey: string;
   baseUrl?: string;
+}
+
+interface SuccessApiResponse<T> {
+  success: true;
+  data: T;
+}
+
+interface BinaryResultWire {
+  buffer: string;
+  mime_type: string;
+}
+
+function serializeBinaryFields(value: unknown): unknown {
+  if (value instanceof Uint8Array) {
+    return encodeBase64(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => serializeBinaryFields(item));
+  }
+
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, serializeBinaryFields(item)]),
+    );
+  }
+
+  return value;
+}
+
+function encodeBase64(value: Uint8Array): string {
+  let binary = "";
+  for (const byte of value) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function decodeBase64(value: string): Uint8Array {
+  return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
 }
 
 export class IterationLayerError extends Error {
@@ -188,52 +88,68 @@ export class IterationLayer {
     this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
   }
 
-  async convertToMarkdown(request: ConvertRequest): Promise<ConvertResult> {
-    return this.post("/document-to-markdown/v1/convert", request);
-  }
-
-  async convertToMarkdownAsync(request: ConvertAsyncRequest): Promise<AsyncResult> {
-    return this.post("/document-to-markdown/v1/convert", request);
-  }
-
-  async extract(request: ExtractRequest): Promise<ExtractionResult> {
+  async extractDocument(request: ExtractDocumentRequest): Promise<ExtractionResult> {
     return this.post("/document-extraction/v1/extract", request);
   }
 
-  async extractAsync(request: ExtractAsyncRequest): Promise<AsyncResult> {
-    return this.post("/document-extraction/v1/extract", request);
-  }
-
-  async transform(request: TransformRequest): Promise<BinaryResult> {
-    return this.post("/image-transformation/v1/transform", request);
-  }
-
-  async transformAsync(request: TransformAsyncRequest): Promise<AsyncResult> {
-    return this.post("/image-transformation/v1/transform", request);
-  }
-
-  async generateImage(request: GenerateImageRequest): Promise<BinaryResult> {
-    return this.post("/image-generation/v1/generate", request);
-  }
-
-  async generateImageAsync(request: GenerateImageAsyncRequest): Promise<AsyncResult> {
-    return this.post("/image-generation/v1/generate", request);
+  async extractDocumentAsync(request: ExtractDocumentAsyncRequest): Promise<AsyncResult> {
+    return this.postAsync("/document-extraction/v1/extract", request);
   }
 
   async generateDocument(request: GenerateDocumentRequest): Promise<BinaryResult> {
-    return this.post("/document-generation/v1/generate", request);
+    const result = await this.post<BinaryResultWire>("/document-generation/v1/generate", request);
+    return { buffer: decodeBase64(result.buffer), mime_type: result.mime_type };
   }
 
   async generateDocumentAsync(request: GenerateDocumentAsyncRequest): Promise<AsyncResult> {
-    return this.post("/document-generation/v1/generate", request);
+    return this.postAsync("/document-generation/v1/generate", request);
+  }
+
+  async convertDocumentToMarkdown(
+    request: ConvertDocumentToMarkdownRequest,
+  ): Promise<ConvertResult> {
+    return this.post("/document-to-markdown/v1/convert", request);
+  }
+
+  async convertDocumentToMarkdownAsync(
+    request: ConvertDocumentToMarkdownAsyncRequest,
+  ): Promise<AsyncResult> {
+    return this.postAsync("/document-to-markdown/v1/convert", request);
+  }
+
+  async generateImage(request: GenerateImageRequest): Promise<BinaryResult> {
+    const result = await this.post<BinaryResultWire>("/image-generation/v1/generate", request);
+    return { buffer: decodeBase64(result.buffer), mime_type: result.mime_type };
+  }
+
+  async generateImageAsync(request: GenerateImageAsyncRequest): Promise<AsyncResult> {
+    return this.postAsync("/image-generation/v1/generate", request);
+  }
+
+  async transformImage(request: TransformImageRequest): Promise<BinaryResult> {
+    const result = await this.post<BinaryResultWire>("/image-transformation/v1/transform", request);
+    return { buffer: decodeBase64(result.buffer), mime_type: result.mime_type };
+  }
+
+  async transformImageAsync(request: TransformImageAsyncRequest): Promise<AsyncResult> {
+    return this.postAsync("/image-transformation/v1/transform", request);
   }
 
   async generateSheet(request: GenerateSheetRequest): Promise<BinaryResult> {
-    return this.post("/sheet-generation/v1/generate", request);
+    const result = await this.post<BinaryResultWire>("/sheet-generation/v1/generate", request);
+    return { buffer: decodeBase64(result.buffer), mime_type: result.mime_type };
   }
 
   async generateSheetAsync(request: GenerateSheetAsyncRequest): Promise<AsyncResult> {
-    return this.post("/sheet-generation/v1/generate", request);
+    return this.postAsync("/sheet-generation/v1/generate", request);
+  }
+
+  async extractWebsite(request: ExtractWebsiteRequest): Promise<ExtractionResult> {
+    return this.post("/website-extraction/v1/extract", request);
+  }
+
+  async extractWebsiteAsync(request: ExtractWebsiteAsyncRequest): Promise<AsyncResult> {
+    return this.postAsync("/website-extraction/v1/extract", request);
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {
@@ -243,27 +159,35 @@ export class IterationLayer {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(serializeBinaryFields(body)),
     });
 
-    const json = (await response.json()) as
-      | { success: true; data: T }
-      | { success: true; async: true; message: string }
-      | { success: false; error: string };
+    const json: SuccessApiResponse<T> | ErrorResponse = await response.json();
 
     if (!json.success) {
       throw new IterationLayerError(response.status, json.error);
     }
 
-    if ("async" in json && json.async) {
-      return json as unknown as T;
+    return json.data;
+  }
+
+  private async postAsync(path: string, body: unknown): Promise<AsyncResult> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(serializeBinaryFields(body)),
+    });
+
+    const json: AsyncResult | ErrorResponse = await response.json();
+
+    if (!json.success) {
+      throw new IterationLayerError(response.status, json.error);
     }
 
-    if ("data" in json) {
-      return json.data;
-    }
-
-    throw new IterationLayerError(response.status, "Unexpected response format");
+    return { success: json.success, async: json.async, message: json.message };
   }
 }
 
