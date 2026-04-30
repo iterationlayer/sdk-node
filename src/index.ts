@@ -157,6 +157,7 @@ export class IterationLayer {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-IterationLayer-Integration": "sdk-node",
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(serializeBinaryFields(body)),
@@ -176,6 +177,7 @@ export class IterationLayer {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-IterationLayer-Integration": "sdk-node",
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(serializeBinaryFields(body)),

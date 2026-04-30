@@ -1,6 +1,6 @@
 {
   "name": "iterationlayer",
-  "version" : "2.0.3",
+  "version" : "2.0.4",
   "description": "Official TypeScript/Node.js SDK for the Iteration Layer API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

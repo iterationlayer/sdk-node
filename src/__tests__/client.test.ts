@@ -109,6 +109,7 @@ describe("IterationLayer", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-IterationLayer-Integration": "sdk-node",
             Authorization: `Bearer ${TEST_API_KEY}`,
           },
           body: expect.any(String),
@@ -281,6 +282,7 @@ describe("IterationLayer", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-IterationLayer-Integration": "sdk-node",
             Authorization: `Bearer ${TEST_API_KEY}`,
           },
           body: expect.any(String),
@@ -435,6 +437,7 @@ describe("IterationLayer", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-IterationLayer-Integration": "sdk-node",
             Authorization: `Bearer ${TEST_API_KEY}`,
           },
           body: expect.any(String),
@@ -501,6 +504,7 @@ describe("IterationLayer", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-IterationLayer-Integration": "sdk-node",
             Authorization: `Bearer ${TEST_API_KEY}`,
           },
           body: expect.any(String),
@@ -575,6 +579,7 @@ describe("IterationLayer", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-IterationLayer-Integration": "sdk-node",
             Authorization: `Bearer ${TEST_API_KEY}`,
           },
           body: expect.any(String),
@@ -648,6 +653,7 @@ describe("IterationLayer", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-IterationLayer-Integration": "sdk-node",
             Authorization: `Bearer ${TEST_API_KEY}`,
           },
           body: expect.any(String),
@@ -716,6 +722,7 @@ describe("IterationLayer", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-IterationLayer-Integration": "sdk-node",
             Authorization: `Bearer ${TEST_API_KEY}`,
           },
           body: expect.any(String),
